@@ -19,8 +19,8 @@ git config user.email [Public E-Mail]
 #make required modifications
 namcap PKGBUILD
 makepkg
-namcap ipfs-gatewayalc-git-*.pkg.tar.xz
-sudo pacman -U ipfs-gatewayalc-git-*.pkg.tar.xz
+namcap ipfs-gatewayacl-git-*.pkg.tar.xz
+sudo pacman -U ipfs-gatewayacl-git-*.pkg.tar.xz
 #run tests
 makepkg --printsrcinfo > .SRCINFO
 #verify changes, f.E. using: git status ; git diff
