@@ -1,0 +1,45 @@
+<html>
+<body>
+	<h1>IPFS-Gateway-ACL Test</h1>
+	<h2>HTTPS</h2>
+	<iframe src="https://bafybeihuvwfdxuyytwrk3ee64qiurvujhwggfhcbb57sy7r7vz22vxtzza.ipfs.localhost/" referrerpolicy="origin"></iframe>
+	<br><br>
+	<button onclick="httpGet('https://bafybeihuvwfdxuyytwrk3ee64qiurvujhwggfhcbb57sy7r7vz22vxtzza.ipfs.localhost/')">http get</button>
+	<br><br>
+	<a href='https://bafybeihuvwfdxuyytwrk3ee64qiurvujhwggfhcbb57sy7r7vz22vxtzza.ipfs.localhost/' target="_blank">link target blank</a>
+	<br><br>
+	<a href='https://bafybeihuvwfdxuyytwrk3ee64qiurvujhwggfhcbb57sy7r7vz22vxtzza.ipfs.localhost/'>link</a>
+
+	<h2>HTTP</h2>
+	<iframe src="http://bafybeihuvwfdxuyytwrk3ee64qiurvujhwggfhcbb57sy7r7vz22vxtzza.ipfs.localhost/" referrerpolicy="origin"></iframe>
+	<br><br>
+	<button onclick="httpGet('http://bafybeihuvwfdxuyytwrk3ee64qiurvujhwggfhcbb57sy7r7vz22vxtzza.ipfs.localhost/')">https get</button>
+	<br><br>
+	<a href='http://bafybeihuvwfdxuyytwrk3ee64qiurvujhwggfhcbb57sy7r7vz22vxtzza.ipfs.localhost/' target="_blank">link target blank</a>
+	<br><br>
+	<a href='http://bafybeihuvwfdxuyytwrk3ee64qiurvujhwggfhcbb57sy7r7vz22vxtzza.ipfs.localhost/'>link</a>
+
+	<script>
+		function httpGet(theUrl)
+		{
+		    if (window.XMLHttpRequest)
+		    {// code for IE7+, Firefox, Chrome, Opera, Safari
+		        xmlhttp=new XMLHttpRequest();
+		    }
+		    else
+		    {// code for IE6, IE5
+		        xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+		    }
+		    xmlhttp.onreadystatechange=function()
+		    {
+		        if (xmlhttp.readyState==4 && xmlhttp.status==200)
+		        {
+		            return xmlhttp.responseText;
+		        }
+		    }
+		    xmlhttp.open("GET", theUrl, false );
+		    xmlhttp.send();    
+		}
+	</script>
+
+</body>

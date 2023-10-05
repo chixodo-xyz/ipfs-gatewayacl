@@ -1,0 +1,11 @@
+[Unit]
+Description=IPFS daemon TESTING
+After=network.target
+
+[Service]
+User=josias
+Environment="IPFS_PATH=<repo>/.dev-environment/ipfs-repo"
+ExecStart=<repo>/.dev-environment/ipfs daemon
+
+[Install]
+WantedBy=multi-user.target

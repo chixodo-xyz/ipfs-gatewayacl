@@ -1,0 +1,13 @@
+#CONFIG
+config/*
+!config/default.example.json
+
+#DEV ENVIRONMENT
+*.sublime-workspace
+.dev-environment/
+test/*.csv
+test/*.ods
+
+#LOGGING FOLDER
+logs/*
+!logs/.keep

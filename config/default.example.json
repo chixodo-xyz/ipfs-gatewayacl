@@ -1,0 +1,34 @@
+{
+	"debug": false,
+	"logfile": "logs/info.log",
+	"ipfs_repo": ".dev-environment/ipfs-repo",
+	"ipns_cache": "config/ipns-cache",
+	"pinset_filter": {
+		"enable": true,
+		"optional": true,
+		"dataFolder": "config/pinset",
+		"overwrite": {
+			"cid_blocklist": false,
+			"origin_filter": true
+		}
+	},
+	"origin_filter":{
+		"enable": true,
+		"policies": {
+			"direct": [".*"],
+			"same_origin": [".*"],
+			"user_initiated_top_level": [".*"],
+			"cross_site": [
+				"^https?://.*%.localhost/?$",
+				"^https?://localhost/?$"
+			]
+		}
+	},
+	"cid_blocklist": {
+		"enable": true,
+		"source": "both",
+		"remoteFile": "https://badbits.dwebops.pub/badbits.deny",
+		"localFile": "config/cid-blocklist.txt",
+		"dataFolder": "config/cid-blocklist"
+	}
+}
