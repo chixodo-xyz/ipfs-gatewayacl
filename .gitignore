@@ -9,5 +9,5 @@ test/*.csv
 test/*.ods
 
 #LOGGING FOLDER
-logs/*
-!logs/.keep
+test/logs/*
+!test/logs/.keep
