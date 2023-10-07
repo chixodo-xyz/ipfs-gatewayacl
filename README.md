@@ -37,10 +37,10 @@ This ACL implements different policies. Each type of policy can be enabled or di
 
 0. Prerequirements
 
->Make sure you use nginx with support for LUA filter. Easiest (for Arch-Linux) is to use Openresty as proxy (see [Development Environment](#development-environment)). As an alternative you can use a lua-module for nginx. For example in debian based distros:
+>Make sure you use nginx with support for LUA filter. Easiest (for Arch-Linux) is to use Openresty as proxy (see [Development Environment](#development-environment)). Alternatively you can use a lua-module for nginx. For example in debian based distros:
 
 ```bash
-apt install libnginx-mod-http-lua
+apt install nginx libnginx-mod-http-lua
 echo "load_module modules/ngx_http_lua_module.so;"  > /etc/nginx/modules-enabled/50-mod-http-lua.conf
 sudo systemctl restart nginx
 ```
@@ -105,74 +105,16 @@ ADD:>
 
 ## Development Environment
 
->Follow this steps to setup local development environment on arch based linux.
+Use the `scripts/setup-dev.sh` to setup local development environment on arch based linux.
+
 >We compile kubo manually that we can install go plugins and such if needed.
 
-1. Setup IPFS Dev Service
-
 ```bash
-mkdir .dev-environment && cd "$_"
-git clone https://github.com/ipfs/kubo && cd kubo
-git fetch –all
-git checkout release #optional to specify which version of kubo should be tested
-make build
-cp cmd/ipfs/ipfs ../ipfs
-cd ../..
+#normal dev environment
+bash scripts/setup-dev.sh
 
-export IPFS_PATH=$(pwd)/.dev-environment/ipfs-repo
-.dev-environment/ipfs init
-.dev-environment/ipfs bootstrap rm --all
-.dev-environment/ipfs bootstrap add /ip4/185.143.45.58/tcp/4001/p2p/12D3KooWPE1U1x31QteygQ7a34tzqx5FFJ3B5ttrfWjAqTn8kHo1
-.dev-environment/ipfs bootstrap add /ip4/195.15.245.11/tcp/4001/p2p/12D3KooWRHKJzo1ajNGBJnjeaunXXL9jNkEwsEi32KHMQkS5pm3t
-.dev-environment/ipfs swarm connect /dnsaddr/chixodo.xyz
-
-.dev-environment/ipfs config --json Gateway.PublicGateways '{"localhost": {"UseSubdomains": true,"InlineDNSLink": true,"Paths": ["/ipfs","/ipns"]}}'
-.dev-environment/ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["PUT","POST"]'
-.dev-environment/ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["http://localhost:5001","https://webui.ipfs.io"]'
-.dev-environment/ipfs config --json Swarm.ConnMgr '{"Type": "basic","LowWater": 10,"HighWater": 30,"GracePeriod": "20s"}'
-.dev-environment/ipfs config --json Swarm.AddrFilters "$(cat 'helpers/addrfilters.json')" #use only chixodo for swarm
-
-sed -e "s|<user>|$(whoami)|g" -e "s|<repo>|$(pwd)|g" helpers/ipfs-dev.service > .dev-environment/ipfs-dev.service
-sudo cp .dev-environment/ipfs-dev.service /lib/systemd/system/ipfs-dev.service
-sudo systemctl daemon-reload
-sudo systemctl start ipfs-dev
-sudo systemctl status ipfs-dev
-
-#Open in Browser: http://localhost:8080/ipfs/QmcniBv7UQ4gGPQQW2BwbD4ZZHzN3o3tPuNLZCbBchd1zh
-#Open in Browser: http://127.0.0.1:5001/webui
-```
-
-2. Setup Openresty
-
-```bash
-cd .dev-environment
-git clone https://aur.archlinux.org/yay-git.git && cd yay-git
-makepkg -si
-cd ../..
-
-yay -S openresty
-
-sudo cp helpers/lib/*.lua /opt/openresty/site/lualib/
-
-sudo cp /opt/openresty/nginx/conf/nginx.conf /opt/openresty/nginx/conf/nginx.conf.backup
-openssl req -new -newkey rsa:2048 -days 3650 -nodes -x509 -subj '/CN=IPFS-Gateway-ACL' -keyout .dev-environment/ssl-fallback.key -out .dev-environment/ssl-fallback.crt 
-sed -e "s|<user>|$(whoami)|g" -e "s|<repo>|$(pwd)|g" helpers/nginx-dev.conf > .dev-environment/nginx-dev.conf
-sudo cp .dev-environment/nginx-dev.conf /opt/openresty/nginx/conf/nginx.conf
-
-sudo systemctl daemon-reload
-sudo systemctl start openresty
-sudo systemctl status openresty
-
-#Open in Browser: http://localhost/ipfs/QmcniBv7UQ4gGPQQW2BwbD4ZZHzN3o3tPuNLZCbBchd1zh
-#Open in Browser: http://localhost/ipfs/QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH
-```
-
-3. One last thing: verify if start and stop scripts are working and use this from now on
-
-```bash
-sudo bash scripts/stop-dev.sh
-sudo bash scripts/start-dev.sh
-sudo bash scripts/restart-dev.sh
+#limited dev environment (connect only to chixodo nodes)
+bash scripts/setup-dev.sh chixodo_only
 ```
 
 
