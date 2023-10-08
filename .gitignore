@@ -8,6 +8,12 @@ config/*
 test/*.csv
 test/*.ods
 
+#CACHE FOLDER
+cache/*
+!cache/.keep
+
 #LOGGING FOLDER
+logs/*
+!logs/.keep
 test/logs/*
 !test/logs/.keep

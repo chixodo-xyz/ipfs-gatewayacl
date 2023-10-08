@@ -1,12 +1,12 @@
 {
 	"debug": false,
-	"logfile": "/var/log/ipfs-gatewayacl/debug.log",
+	"logfile": "logs/debug.log",
 	"ipfs_repo": "~/.ipfs-repo",
-	"ipns_cache": "config/ipns-cache",
+	"ipns_cache": "cache/ipns",
 	"pinset_filter": {
 		"enable": true,
 		"optional": true,
-		"dataFolder": "config/pinset",
+		"dataFolder": "cache/pinset",
 		"overwrite": {
 			"cid_blocklist": false,
 			"origin_filter": true
@@ -29,6 +29,6 @@
 		"source": "both",
 		"remoteFile": "https://badbits.dwebops.pub/badbits.deny",
 		"localFile": "config/cid-blocklist.txt",
-		"dataFolder": "config/cid-blocklist"
+		"dataFolder": "cache/cid-blocklist"
 	}
 }

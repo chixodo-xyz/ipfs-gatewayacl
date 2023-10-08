@@ -1,0 +1,254 @@
+#!/bin/bash
+
+rootDir=$( dirname "$0" )
+config=$( realpath $rootDir/config/default.json )
+
+ACTION=$1
+PARAM1=$2
+PARAM2=$3
+
+log(){
+	echo "$(date +"%Y-%m-%dT%H:%M:%S%:z") | $1 | $2"
+	if [ $1 = "ERROR" ]; then
+		exit
+	fi
+}
+
+if [ -z $ACTION ]; then
+	printf "\033[31;1mERROR: Parameter missing! Provide Action as first Parameter.\n\033[0m"
+	exit
+fi
+
+log "INFO" "Using config file: $config"
+
+if [[ ! -f "$config" ]]; then
+	log "ERROR" "Config file missing!"
+fi
+
+if [[ ! $(jq '.' $config) ]]; then
+	log "ERROR" "Config file does not contain valid json data."
+fi
+
+case $ACTION in
+
+  "block")
+		if [ -z $PARAM1 ]; then
+			printf "\033[31;1mERROR: Parameter missing! Provide CID as second Parameter and optionally PATH as third Parameter.\n\033[0m"
+			exit
+		fi
+
+		pCID=$PARAM1
+		pPATH=$PARAM2
+
+		echo "INFO: Using config file: $config"
+
+		rawLocalFile=$( jq -r '.cid_blocklist.localFile' $config )
+		source=$( jq -r '.cid_blocklist.source' $config )
+		remoteFile=$( jq -r '.cid_blocklist.remoteFile' $config )
+
+		if [ "$rawLocalFile" = "null" ] || [ "$remoteFile" = "null" ] || [ "$source" = "null" ] || ( [ ! "$source" = "remote" ] && [ ! "$source" = "local" ] && [ ! "$source" = "both" ] ); then
+			printf "\033[33;1mWARNING: Config file different than expected!\n\033[0m"
+			echo "Expected:"
+			echo -n "\"cid_blocklist\": "
+			jq '.cid_blocklist' 'config/default.example.json'
+			echo "Got:"
+			echo -n "\"cid_blocklist\": "
+			jq '.cid_blocklist' $config
+			printf "\033[31;1mERROR: Missing or invalid parameter in config file (see above)!\n\033[0m"
+			exit
+		fi
+
+		localFile=$( realpath $rawLocalFile )
+		localFileHistory="${localFile}.history"
+
+		cid=$(echo -n $(ipfs cid base32 $pCID))
+		path=$pPATH
+
+		if [ -z "$path" ]; then
+			deny=$cid
+		else
+			deny="$cid/$path"
+		fi
+
+		sha256=$(echo -n $deny | sha256sum | awk '{print $1;}')
+
+		echo ""
+		echo "Provided CID: $pCID"
+		echo "Provided Path: $path"
+		echo ""
+		echo "base32 encoded cidv1: $cid"
+		echo ""
+		echo "Blocking: $deny"
+		echo "SHA256: $sha256"
+		echo ""
+
+		echo -e "$(date +"%Y-%m-%dT%H:%M:%S%z")\t$deny" >> $localFileHistory
+		if ! grep -Fxq "$sha256" $localFile; then
+			echo "$sha256" >> $localFile
+		fi
+
+		printf "\033[36;1mCID successfully blocked.\n\033[0m"
+
+		while true; do
+		  read -r -p "Do you want to update cid-blocklist now? (yes|No) " answer
+		  case $answer in
+		    [Yy]* ) break;;
+		    [Nn]* ) exit;;
+			"" ) exit;;
+		    * ) echo "Please answer yes or no.";;
+		  esac
+		done
+
+		$rootDir/ipfs-gatewayacl update cid-blocklist
+    ;;
+
+  "update")
+		if [ -z $PARAM1 ]; then
+			echo "\033[31;1mERROR: Parameter missing! Provide cid-blocklist / pinset second parameter.\n\033[0m"
+			exit
+		elif [[ $PARAM1 == "cid-blocklist" ]] ; then
+			log "INFO" "UPDATE CID-BLOCKLIST STARTED"
+
+			rawDataFolder=$( jq -r '.cid_blocklist.dataFolder' $config )
+			rawLocalFile=$( jq -r '.cid_blocklist.localFile' $config )
+			source=$( jq -r '.cid_blocklist.source' $config )
+			remoteFile=$( jq -r '.cid_blocklist.remoteFile' $config )
+
+			if [ "$rawDataFolder" = "null" ] || [ "$rawLocalFile" = "null" ] || [ "$remoteFile" = "null" ] || [ "$source" = "null" ] || ( [ ! "$source" = "remote" ] && [ ! "$source" = "local" ] && [ ! "$source" = "both" ] ); then
+				log "WARNING" "Config file different than expected!"
+				echo "Expected:"
+				echo -n "\"cid_blocklist\": "
+				jq '.cid_blocklist' 'config/default.example.json'
+				echo "Got:"
+				echo -n "\"cid_blocklist\": "
+				jq '.cid_blocklist' $config
+				log "ERROR" "Missing or invalid parameter in config file (see above)!"
+			fi
+
+			dataFolder=$( realpath $rawDataFolder )
+			dataFolderTEMP="${dataFolder}_TEMP"
+			localFile=$( realpath $rawLocalFile )
+
+			log "INFO" "Preparing folder structure"
+			rm -rf $dataFolderTEMP
+			mkdir $dataFolderTEMP
+			for i in {0..255}; do mkdir $dataFolderTEMP/$(printf "%02x" $i); done
+
+			if [ $source = 'remote' ]; then
+				log "INFO" "Generating cid-blocklist using remote data from ${remoteFile}"
+				{ curl -sN $remoteFile | grep "^//" | sed 's/\/\///g' ; } | while read -r line; do echo "$line" >> $dataFolderTEMP/${line:0:2}/${line:0:4}; done
+			fi
+
+			if [ $source = 'local' ]; then
+				log "INFO" "Generating cid-blocklist using local data from ${localFile}"
+				{ cat $localFile 2>/dev/null ; } | while read -r line; do echo "$line" >> $dataFolderTEMP/${line:0:2}/${line:0:4}; done
+			fi
+
+			if [ $source = 'both' ]; then
+				log "INFO" "Generating cid-blocklist using remote data from ${remoteFile} including local data from ${localFile}"
+				{ curl -sN $remoteFile | grep "^//" | sed 's/\/\///g' ; cat $localFile 2>/dev/null ; } | while read -r line; do echo "$line" >> $dataFolderTEMP/${line:0:2}/${line:0:4}; done
+			fi
+
+			echo "$(date +"%Y-%m-%dT%H:%M:%S%:z")" > $dataFolderTEMP/version
+			echo ""
+
+			log "INFO" "Overwriting data folder with temp data folder"
+			rsync -ac --delete "$dataFolderTEMP/" "$dataFolder/"
+			rm -rf $dataFolderTEMP
+
+			log "INFO" "cid-blocklist now counts $(find $dataFolder -type f -exec cat {} + | wc -l) records."
+
+			log "INFO" "cid-blocklist updated!"
+			log "INFO" "UPDATE CID-BLOCKLIST ENDED"
+
+		elif [[ $PARAM1 == "pinset" ]] ; then
+			
+			log "INFO" "UPDATE PINSET STARTED"
+			
+			rawDataFolder=$( jq -r '.pinset_filter.dataFolder' $config )
+
+			if [ "$rawDataFolder" = "null" ]; then
+				log "WARNING" "Config file different than expected!"
+				echo "Expected:"
+				echo -n "\"pinset_filter\": "
+				jq '.pinset_filter' 'config/default.example.json'
+				echo "Got:"
+				echo -n "\"pinset_filter\": "
+				jq '.pinset_filter' $config
+				log "ERROR" "Missing or invalid parameter in config file (see above)!"
+			fi
+
+			dataFolder=$( realpath $rawDataFolder )
+			dataFolderTEMP="${dataFolder}_TEMP"
+
+			log "INFO" "Preparing folder structure"
+
+			rm -rf $dataFolderTEMP
+			mkdir $dataFolderTEMP
+
+			log "INFO" "Generating pinset using local pins"
+			{ ipfs pin ls -q -t recursive | ipfs cid base32 ; } | while read -r line; do mkdir -p $dataFolderTEMP/${line:0:8}; echo "$line" >> $dataFolderTEMP/${line:0:8}/${line:0:10}; done
+			echo "$(date +"%Y-%m-%dT%H:%M:%S%:z")" > $dataFolderTEMP/version
+
+			log "INFO" "Overwriting data folder with temp data folder"
+			rsync -ac --delete "$dataFolderTEMP/" "$dataFolder/"
+			rm -rf $dataFolderTEMP
+
+			log "INFO" "pinset now counts $(find $dataFolder -type f -exec cat {} + | wc -l) records."
+
+			log "INFO" "pinset updated!"
+			log "INFO" "UPDATE PINSET ENDED"
+
+		else
+			echo "\033[31;1mERROR: Parameter invalid! Provide cid-blocklist / pinset second parameter.\n\033[0m"
+			exit
+		fi
+    ;;
+
+  "logrotate")
+    
+		log "INFO" "ROTATE LOG STARTED"
+
+		rawLogFile=$( jq -r '.logfile' $config )
+
+		if [ "$rawLogFile" = "null" ]; then
+			log "WARNING" "Config file different than expected! Expected: <string>"
+			log "ERROR" "Missing or invalid parameter in config file (see above)!"
+		fi
+
+		logFile=$( realpath $rawLogFile )
+
+		if [[ ! -f "$logFile" ]]; then
+			log "WANRING" "Logfile doesn't exist: $logFile"
+		else
+			max_file_size=$((1024 * 1024 * 20)) # 20MB
+			file_size=`du -b $logFile | tr -s '\t' ' ' | cut -d' ' -f1`
+			log "INFO" "FileSize: $(bc <<< "scale=2; $file_size/1024/1024")MB"
+		  if [ $file_size -gt $max_file_size ];then
+		      timestamp=`date +%s`
+		      rm -f ${logFile}.9.gz
+		      for i in {8..1}; do
+		      	mv -f ${logFile}.${i}.gz ${logFile}.$(($i+1)).gz 2>/dev/null; true
+		      done
+		      mv -f ${logFile}.gz ${logFile}.1.gz 2>/dev/null; true
+		      gzip $logFile
+		      log "INFO" "LogFile rotated."
+		  else
+		  	log "INFO" "LogFile not being rotated because FileSize doesn't exceed $(bc <<< "scale=0; $max_file_size/1024/1024")MB"
+		  fi
+		fi
+
+		log "INFO" "ROTATE LOG ENDED"
+    ;;
+
+  "cron")
+    echo "run cron job actions..."
+    $rootDir/ipfs-gatewayacl update pinset
+    $rootDir/ipfs-gatewayacl update cid-blocklist
+    $rootDir/ipfs-gatewayacl logrotate
+    ;;
+
+  *)
+    printf "\033[31;1mERROR: Unkown Action.\n\033[0m"
+    ;;
+esac
