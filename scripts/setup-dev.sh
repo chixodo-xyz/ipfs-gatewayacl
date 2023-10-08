@@ -82,18 +82,23 @@ printf "http://localhost:5001/webui\n"
 
 # Setup OpenResty
 printf "\033[34;1m\nPrepare OpenResty\n\033[0m"
+sudo systemctl stop openresty
 sudo pamac install openresty
 
 printf "\033[34;1mCopy lua libraries...\n\033[0m"
 sudo cp lib/*.lua /lib/lua/5.1/
 
 printf "\033[34;1mGenerate ssl certificate...\n\033[0m"
-openssl req -new -newkey rsa:2048 -days 3650 -nodes -x509 -subj '/CN=IPFS-Gateway-ACL' -keyout .dev-environment/ssl-fallback.key -out .dev-environment/ssl-fallback.crt 
+openssl req -new -newkey rsa:2048 -days 3650 -nodes -x509 -subj '/CN=IPFS-GatewayACL' -keyout .dev-environment/ssl-fallback.key -out .dev-environment/ssl-fallback.crt 
 sed -e "s|<user>|$(whoami)|g" -e "s|<repo>|$(pwd)|g" helpers/nginx-dev.conf > .dev-environment/nginx-dev.conf
 
 printf "\033[34;1mApply OpenResty Nginx Config...\n\033[0m"
 sudo cp /opt/openresty/nginx/conf/nginx.conf /opt/openresty/nginx/conf/nginx.conf.$(date +"%s").backup
 sudo cp .dev-environment/nginx-dev.conf /opt/openresty/nginx/conf/nginx.conf
+
+printf "\033[34;1mPrepare Directory for Logging...\n\033[0m"
+sudo mkdir -p /var/log/ipfs-gatewayacl
+sudo chmod 777 /var/log/ipfs-gatewayacl
 
 printf "\033[34;1mStart OpenResty Deamon...\n\033[0m"
 sudo systemctl daemon-reload

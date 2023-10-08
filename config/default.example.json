@@ -1,7 +1,7 @@
 {
 	"debug": false,
-	"logfile": "logs/info.log",
-	"ipfs_repo": ".dev-environment/ipfs-repo",
+	"logfile": "/var/log/ipfs-gatewayacl/debug.log",
+	"ipfs_repo": "~/.ipfs-repo",
 	"ipns_cache": "config/ipns-cache",
 	"pinset_filter": {
 		"enable": true,
