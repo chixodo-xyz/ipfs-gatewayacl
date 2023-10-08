@@ -59,7 +59,7 @@ local function ternary ( cond , T , F )
 end
 
 local function absPath (p)
-  return ternary(not string.starts(p, "/"), ngx.var.ipfs_gateway_acl_root .. "/", "") .. p
+  return ternary(not string.starts(p, "/"), ngx.var.ipfs_gatewayacl_root .. "/", "") .. p
 end
 
 local function getServerHostname()
@@ -212,7 +212,7 @@ end
 -- preparation
 headers = ngx.req.get_headers()
 cidstr, path, resolutionStyle = prepareResolutionStyles(host, requesturi)
-config = json.decode(readAll(ngx.var.ipfs_gateway_acl_root .. "/config/default.json"))
+config = json.decode(readAll(ngx.var.ipfs_gatewayacl_root .. "/config/default.json"))
 if config.logfile then 
   tinylogger.outfile = absPath(config.logfile)
 end
@@ -287,7 +287,7 @@ if (config.origin_filter.enable
   and (statuscode == 200 or (statuscode == 202 and config.pinset_filter.overwrite.origin_filter == false))) then
   local policy = false
   if (type(config.origin_filter.policies.direct) ~= "table" or type(config.origin_filter.policies.same_origin) ~= "table" or type(config.origin_filter.policies.user_initiated_top_level) ~= "table" or type(config.origin_filter.policies.cross_site) ~= "table") then
-    log(ngx.ERR, "ERROR in config: every element of origin_filter.policies must be table/array! Check: " .. ngx.var.ipfs_gateway_acl_root .. "/config/default.json")
+    log(ngx.ERR, "ERROR in config: every element of origin_filter.policies must be table/array! Check: " .. ngx.var.ipfs_gatewayacl_root .. "/config/default.json")
     statuscode, statusmessage = 500, "Error in config origin_filter.policies"
   else
     if headers["sec-fetch-site"] == "none" or headers["sec-fetch-site"] == nil then

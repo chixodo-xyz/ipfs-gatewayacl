@@ -96,10 +96,6 @@ printf "\033[34;1mApply OpenResty Nginx Config...\n\033[0m"
 sudo cp /opt/openresty/nginx/conf/nginx.conf /opt/openresty/nginx/conf/nginx.conf.$(date +"%s").backup
 sudo cp .dev-environment/nginx-dev.conf /opt/openresty/nginx/conf/nginx.conf
 
-printf "\033[34;1mPrepare Directory for Logging...\n\033[0m"
-sudo mkdir -p /var/log/ipfs-gatewayacl
-sudo chmod 777 /var/log/ipfs-gatewayacl
-
 printf "\033[34;1mStart OpenResty Deamon...\n\033[0m"
 sudo systemctl daemon-reload
 sudo systemctl start openresty
