@@ -148,7 +148,7 @@ case $ACTION in
 		pCID=$PARAM1
 		pPATH=$PARAM2
 
-		localFile=$( realpath $cidblocklist_rawLocalFile )
+		localFile=$cidblocklist_rawLocalFile
 		localFileHistory="${localFile}.history"
 
 		cid=$(echo -n $(ipfs cid base32 $pCID))
@@ -198,27 +198,27 @@ case $ACTION in
 		elif [[ $PARAM1 == "blocklist" ]] ; then
 			log "INFO" "UPDATE CID-BLOCKLIST STARTED"
 
-			dataFolder=$( realpath $cidblocklist_rawDataFolder )
+			dataFolder=$cidblocklist_rawDataFolder
 			dataFolderTEMP="${dataFolder}_TEMP"
-			localFile=$( realpath $cidblocklist_rawLocalFile )
+			localFile=$cidblocklist_rawLocalFile
 
 			log "INFO" "Preparing folder structure"
 			rm -rf $dataFolderTEMP
-			mkdir $dataFolderTEMP
+			mkdir -p $dataFolderTEMP
 			for i in {0..255}; do mkdir $dataFolderTEMP/$(printf "%02x" $i); done
 
-			if [ $source = 'remote' ]; then
+			if [ $cidblocklist_source = "remote" ]; then
 				log "INFO" "Generating cid-blocklist using remote data from ${cidblocklist_remoteFile}"
 				{ curl -sN $cidblocklist_remoteFile | grep "^//" | sed 's/\/\///g' ; } | while read -r line; do echo "$line" >> $dataFolderTEMP/${line:0:2}/${line:0:4}; done
 			fi
 
-			if [ $source = 'local' ]; then
-				log "INFO" "Generating cid-blocklist using local data from ${localFile}"
+			if [ $cidblocklist_source = "local" ]; then
+				log "INFO" "Generating cid-blocklist using local data from $(realpath $localFile)"
 				{ cat $localFile 2>/dev/null ; } | while read -r line; do echo "$line" >> $dataFolderTEMP/${line:0:2}/${line:0:4}; done
 			fi
 
-			if [ $source = 'both' ]; then
-				log "INFO" "Generating cid-blocklist using remote data from ${cidblocklist_remoteFile} including local data from ${localFile}"
+			if [ $cidblocklist_source = "both" ]; then
+				log "INFO" "Generating cid-blocklist using remote data from ${cidblocklist_remoteFile} including local data from $(realpath $localFile)"
 				{ curl -sN $cidblocklist_remoteFile | grep "^//" | sed 's/\/\///g' ; cat $localFile 2>/dev/null ; } | while read -r line; do echo "$line" >> $dataFolderTEMP/${line:0:2}/${line:0:4}; done
 			fi
 
@@ -238,13 +238,13 @@ case $ACTION in
 			
 			log "INFO" "UPDATE PINSET STARTED"
 
-			dataFolder=$( realpath $pinset_rawDataFolder )
+			dataFolder=$pinset_rawDataFolder
 			dataFolderTEMP="${dataFolder}_TEMP"
 
 			log "INFO" "Preparing folder structure"
 
 			rm -rf $dataFolderTEMP
-			mkdir $dataFolderTEMP
+			mkdir -p $dataFolderTEMP
 
 			log "INFO" "Generating pinset using local pins"
 			{ ipfs pin ls -q -t recursive | ipfs cid base32 ; } | while read -r line; do mkdir -p $dataFolderTEMP/${line:0:8}; echo "$line" >> $dataFolderTEMP/${line:0:8}/${line:0:10}; done
@@ -269,7 +269,7 @@ case $ACTION in
     
 		log "INFO" "ROTATE LOG STARTED"
 
-		logFile=$( realpath $logrotate_rawLogFile )
+		logFile=$logrotate_rawLogFile
 
 		if [[ ! -f "$logFile" ]]; then
 			log "WANRING" "Logfile doesn't exist: $logFile"

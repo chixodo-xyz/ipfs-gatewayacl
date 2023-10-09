@@ -214,6 +214,9 @@ headers = ngx.req.get_headers()
 cidstr, path, resolutionStyle = prepareResolutionStyles(host, requesturi)
 config = json.decode(readAll(ngx.var.ipfs_gatewayacl_root .. "/config/default.json"))
 if config.logfile then 
+  if not isdir(absPath(config.logfile)) then
+    os.execute("mkdir -p $(dirname " .. absPath(config.logfile) .. ")")
+  end
   tinylogger.outfile = absPath(config.logfile)
 end
 log(false, ngx.INFO, "REQUEST INFORMATION -> scheme = " .. scheme .. " ; host = " .. host .. " ; requesturi = " .. requesturi .. " ; cidstr = " .. cidstr .. " ; path -> " .. path .. " ; headers -> ", headers)
@@ -232,7 +235,7 @@ if cidstr == "" then
 end
 
 if (config.ipns_cache and not isdir(absPath(config.ipns_cache))) then
-  os.execute("mkdir " .. absPath(config.ipns_cache))
+  os.execute("mkdir -p " .. absPath(config.ipns_cache))
 end
 
 if mode == "ipns" then
