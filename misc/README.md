@@ -24,7 +24,7 @@ sudo pacman -U ipfs-gatewayacl-git-*.pkg.tar.xz
 #run tests
 makepkg --printsrcinfo > .SRCINFO
 #verify changes, f.E. using: git status ; git diff
-git add PKGBUILD .SRCINFO .gitignore
+git add PKGBUILD .SRCINFO .gitignore prod.install
 git commit -m "useful commit message"
 git push
 cd ..
