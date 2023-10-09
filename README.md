@@ -5,6 +5,12 @@
 >2. Origin_filter does not make sense with direct because it will never have a referer or origin...
 >3. IPNS speed reduced when using dnslink
 
+## ToDo
+
+- Add "help" action to `src/ipfs-gatewayacl`
+- Add "config" action to `src/ipfs-gatewayacl` and edit prod.install (in ipfs-gateway-git)
+- Add usage of default config file in `src/ipfs-gatewayacl`
+
 ## Requirements
 
 - Linux OS (tested on Arch)
