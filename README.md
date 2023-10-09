@@ -7,9 +7,6 @@
 
 ## ToDo
 
-- Add "help" action to `src/ipfs-gatewayacl`
-- Add "config" action to `src/ipfs-gatewayacl` and edit prod.install (in ipfs-gateway-git)
-- Add usage of default config file in `src/ipfs-gatewayacl`
 
 ## Requirements
 

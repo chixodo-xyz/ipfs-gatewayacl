@@ -1,64 +1,154 @@
 #!/bin/bash
 
 rootDir=$( dirname "$0" )
-config=$( realpath $rootDir/config/default.json )
 
 ACTION=$1
 PARAM1=$2
 PARAM2=$3
 
 log(){
-	echo "$(date +"%Y-%m-%dT%H:%M:%S%:z") | $1 | $2"
-	if [ $1 = "ERROR" ]; then
-		exit
-	fi
+	default="\033[0m"
+	case $1 in
+		"ERROR") color="\033[31;1m";;
+		"WARNING") color="\033[33;1m";;
+		"INFO") color="\033[37;1m";;
+		"POINT") color="\033[34;1m";;
+		"SUCCESS") color="\033[36;1m";;
+		*) color="\033[0;37m";;
+	esac
+	printf "$(date +"%Y-%m-%dT%H:%M:%S%:z") | $color$1$default | $2\n"
+	[ $1 = "ERROR" ] && exit
 }
 
-if [ -z $ACTION ]; then
-	printf "\033[31;1mERROR: Parameter missing! Provide Action as first Parameter.\n\033[0m"
+#validate parameters
+[ -z $ACTION ] && log "ERROR" "Parameter missing. Get instructions with: ipfs-gatewayacl help"
+
+#prevalidation action: help
+if [ "$ACTION" = "help" ]; then
+	echo "Usage: ipfs-gatewayacl [ACTION] [P1] [P2]"
+	echo "Controls IPFS-GatewayACL configuration, cache and logs."
+	echo ""
+	echo "Available ACTIONS:"
+	echo "- help             Print this information."
+	echo "- config           Show or modify configuration."
+	echo "  + P1: init       Create default.json"
+	echo "  + P1: edit       Edit default.json"
+	echo "  + P1: show       Show default.json"
+	echo "- block            Block a CID or CID/PATH."
+	echo "  + P1: CID        CID to block in v0 or v1 Format."
+	echo "  + P2: PATH*      optional File PATH to block"
+	echo "- update           Update CID_Blocklist and/or Pinset."
+	echo "  + P1: blocklist  Update CID_Blocklist"
+	echo "  + P1: pinset     Update Pinset"
+	echo "- logrotate        Rotate Debug-Logfile."
+	echo "- cron             Run typical cron job actions."
+	echo ""
+	echo "* means optional parameter"
+	echo ""
+	echo "Examples:"
+	echo ""
+	echo "Following command creates an config file:"
+	printf "\033[0;34mipfs-gatewayacl config init\033[0m\n"
+	echo ""
+	echo "Same as above but overwriting config file path using an env-variable:"
+	printf "\033[0;34mexport IPFS_GATEWAYACL_CONFIG=\"/var/test/default.json\"\033[0m\n"
+	printf "\033[0;34mipfs-gatewayacl config init\033[0m\n"
+	echo ""
+	echo "Block a CID (using v0 CID); a specific File (using v0 CID and Path); and same with v1 CID:"
+	printf "\033[0;34mipfs-gatewayacl block QmcniBv7UQ4gGPQQW2BwbD4ZZHzN3o3tPuNLZCbBchd1zh\033[0m\n"
+	printf "\033[0;34mipfs-gatewayacl block QmfUmFJfba8Qx4FV2PQM9JVuyPNRQouEpkdjpcYZqFDBQW bad.txt\033[0m\n"
+	printf "\033[0;34mipfs-gatewayacl block bafybeih6vk3xn3o56ecldk7u3qwmjgrdbofgqtbobvlogluzyibjiolv7m bad.txt\033[0m\n"
+	echo ""
+	echo "To automate update and cleanup you can use cronjobs."
+	echo "The following commands sets up a basic usecase:"
+	printf "\033[0;34mcrontab -l > current_cron_jobs\033[0m\n"
+	printf "\033[0;34mecho \"*/15 * * * * /usr/local/bin/ipfs-gatewayacl cron\" >> current_cron_jobs\033[0m\n"
+	printf "\033[0;34mcrontab current_cron_jobs\033[0m\n"
+	printf "\033[0;34mrm current_cron_jobs\033[0m\n"
+	printf "\033[0;34mtail -f /var/log/cron\033[0m\n"	
 	exit
+fi
+
+#set config file
+if [ "$IPFS_GATEWAYACL_CONFIG" != "" ]; then
+	config=$IPFS_GATEWAYACL_CONFIG
+else
+	#detect config file
+	config="$rootDir/config/default.json"
+	if [[ ! -f "$config" ]]; then
+		log "WARNING" "Config not found in: $config"
+		config="/opt/ipfs-gatewayacl/config/default.json"
+	fi
+	[[ ! -f "$config" ]] && log "WARNING" "Config not found in: $config"
 fi
 
 log "INFO" "Using config file: $config"
 
-if [[ ! -f "$config" ]]; then
-	log "ERROR" "Config file missing!"
+#prevalidation action: config
+if ( [ "$ACTION" = "config" ] ); then
+	case $PARAM1 in
+	"init")
+		[[ -f "$config" ]] && log "ERROR" "Config already exists. Can't continue."
+		sudo mkdir -p "$( dirname "$config" )"
+		sudo cp "$( dirname "$config" )/default.example.json" $config
+		log "SUCCESS" "Config initialized"
+		;;
+	"edit")
+		[[ ! -f "$config" ]] && log "ERROR" "Config file missing."
+		echo "About to edit (read-write): $config"
+		read -r -p "Press ENTER to continue"
+		sudo $EDITOR $config
+		;;
+	"show")
+		[[ ! -f "$config" ]] && log "ERROR" "Config file missing."
+		echo "About to show (read-only): $config"
+		read -r -p "Press ENTER to continue"
+		cat $config
+		;;
+	esac
+	exit
 fi
 
+if [[ ! -f "$config" ]]; then
+	log "ERROR" "Config missing. Get instructions with: ipfs-gatewayacl help"
+fi
+
+#validate config file
 if [[ ! $(jq '.' $config) ]]; then
-	log "ERROR" "Config file does not contain valid json data."
+	log "WARNING" "Config file does not contain valid json data."
+	log "ERROR" "Config invalid. Get instructions with: ipfs-gatewayacl help"
+fi
+
+cidblocklist_rawLocalFile=$( jq -r '.cid_blocklist.localFile' $config )
+cidblocklist_source=$( jq -r '.cid_blocklist.source' $config )
+cidblocklist_remoteFile=$( jq -r '.cid_blocklist.remoteFile' $config )
+cidblocklist_rawDataFolder=$( jq -r '.cid_blocklist.dataFolder' $config )
+logrotate_rawLogFile=$( jq -r '.logfile' $config )
+pinset_rawDataFolder=$( jq -r '.pinset_filter.dataFolder' $config )
+
+if [ "$cidblocklist_rawDataFolder" = "null" ] \
+	|| [ "$cidblocklist_rawLocalFile" = "null" ] \
+	|| [ "$cidblocklist_remoteFile" = "null" ] \
+	|| [ "$cidblocklist_source" = "null" ] \
+	|| ( [ ! "$cidblocklist_source" = "remote" ] && [ ! "$cidblocklist_source" = "local" ] && [ ! "$cidblocklist_source" = "both" ] ) \
+  || [ "$pinset_rawDataFolder" = "null" ] \
+  || [ "$logrotate_rawLogFile" = "null" ]; then
+	log "WARNING" "Found invalid values in config file."
+	log "ERROR" "Can't continue without valid config file. Get instructions with: ipfs-gatewayacl help"
 fi
 
 case $ACTION in
 
   "block")
 		if [ -z $PARAM1 ]; then
-			printf "\033[31;1mERROR: Parameter missing! Provide CID as second Parameter and optionally PATH as third Parameter.\n\033[0m"
+			log "ERROR" "Parameter missing! Get instructions with: ipfs-gatewayacl help"
 			exit
 		fi
 
 		pCID=$PARAM1
 		pPATH=$PARAM2
 
-		echo "INFO: Using config file: $config"
-
-		rawLocalFile=$( jq -r '.cid_blocklist.localFile' $config )
-		source=$( jq -r '.cid_blocklist.source' $config )
-		remoteFile=$( jq -r '.cid_blocklist.remoteFile' $config )
-
-		if [ "$rawLocalFile" = "null" ] || [ "$remoteFile" = "null" ] || [ "$source" = "null" ] || ( [ ! "$source" = "remote" ] && [ ! "$source" = "local" ] && [ ! "$source" = "both" ] ); then
-			printf "\033[33;1mWARNING: Config file different than expected!\n\033[0m"
-			echo "Expected:"
-			echo -n "\"cid_blocklist\": "
-			jq '.cid_blocklist' 'config/default.example.json'
-			echo "Got:"
-			echo -n "\"cid_blocklist\": "
-			jq '.cid_blocklist' $config
-			printf "\033[31;1mERROR: Missing or invalid parameter in config file (see above)!\n\033[0m"
-			exit
-		fi
-
-		localFile=$( realpath $rawLocalFile )
+		localFile=$( realpath $cidblocklist_rawLocalFile )
 		localFileHistory="${localFile}.history"
 
 		cid=$(echo -n $(ipfs cid base32 $pCID))
@@ -72,7 +162,7 @@ case $ACTION in
 
 		sha256=$(echo -n $deny | sha256sum | awk '{print $1;}')
 
-		echo ""
+		log "INFO" "Summary:"
 		echo "Provided CID: $pCID"
 		echo "Provided Path: $path"
 		echo ""
@@ -80,14 +170,13 @@ case $ACTION in
 		echo ""
 		echo "Blocking: $deny"
 		echo "SHA256: $sha256"
-		echo ""
 
 		echo -e "$(date +"%Y-%m-%dT%H:%M:%S%z")\t$deny" >> $localFileHistory
 		if ! grep -Fxq "$sha256" $localFile; then
 			echo "$sha256" >> $localFile
 		fi
 
-		printf "\033[36;1mCID successfully blocked.\n\033[0m"
+		log "SUCCESS" "CID successfully blocked."
 
 		while true; do
 		  read -r -p "Do you want to update cid-blocklist now? (yes|No) " answer
@@ -104,30 +193,14 @@ case $ACTION in
 
   "update")
 		if [ -z $PARAM1 ]; then
-			echo "\033[31;1mERROR: Parameter missing! Provide cid-blocklist / pinset second parameter.\n\033[0m"
+			log "ERROR" "Parameter missing! Get instructions with: ipfs-gatewayacl help"
 			exit
-		elif [[ $PARAM1 == "cid-blocklist" ]] ; then
+		elif [[ $PARAM1 == "blocklist" ]] ; then
 			log "INFO" "UPDATE CID-BLOCKLIST STARTED"
 
-			rawDataFolder=$( jq -r '.cid_blocklist.dataFolder' $config )
-			rawLocalFile=$( jq -r '.cid_blocklist.localFile' $config )
-			source=$( jq -r '.cid_blocklist.source' $config )
-			remoteFile=$( jq -r '.cid_blocklist.remoteFile' $config )
-
-			if [ "$rawDataFolder" = "null" ] || [ "$rawLocalFile" = "null" ] || [ "$remoteFile" = "null" ] || [ "$source" = "null" ] || ( [ ! "$source" = "remote" ] && [ ! "$source" = "local" ] && [ ! "$source" = "both" ] ); then
-				log "WARNING" "Config file different than expected!"
-				echo "Expected:"
-				echo -n "\"cid_blocklist\": "
-				jq '.cid_blocklist' 'config/default.example.json'
-				echo "Got:"
-				echo -n "\"cid_blocklist\": "
-				jq '.cid_blocklist' $config
-				log "ERROR" "Missing or invalid parameter in config file (see above)!"
-			fi
-
-			dataFolder=$( realpath $rawDataFolder )
+			dataFolder=$( realpath $cidblocklist_rawDataFolder )
 			dataFolderTEMP="${dataFolder}_TEMP"
-			localFile=$( realpath $rawLocalFile )
+			localFile=$( realpath $cidblocklist_rawLocalFile )
 
 			log "INFO" "Preparing folder structure"
 			rm -rf $dataFolderTEMP
@@ -135,8 +208,8 @@ case $ACTION in
 			for i in {0..255}; do mkdir $dataFolderTEMP/$(printf "%02x" $i); done
 
 			if [ $source = 'remote' ]; then
-				log "INFO" "Generating cid-blocklist using remote data from ${remoteFile}"
-				{ curl -sN $remoteFile | grep "^//" | sed 's/\/\///g' ; } | while read -r line; do echo "$line" >> $dataFolderTEMP/${line:0:2}/${line:0:4}; done
+				log "INFO" "Generating cid-blocklist using remote data from ${cidblocklist_remoteFile}"
+				{ curl -sN $cidblocklist_remoteFile | grep "^//" | sed 's/\/\///g' ; } | while read -r line; do echo "$line" >> $dataFolderTEMP/${line:0:2}/${line:0:4}; done
 			fi
 
 			if [ $source = 'local' ]; then
@@ -145,8 +218,8 @@ case $ACTION in
 			fi
 
 			if [ $source = 'both' ]; then
-				log "INFO" "Generating cid-blocklist using remote data from ${remoteFile} including local data from ${localFile}"
-				{ curl -sN $remoteFile | grep "^//" | sed 's/\/\///g' ; cat $localFile 2>/dev/null ; } | while read -r line; do echo "$line" >> $dataFolderTEMP/${line:0:2}/${line:0:4}; done
+				log "INFO" "Generating cid-blocklist using remote data from ${cidblocklist_remoteFile} including local data from ${localFile}"
+				{ curl -sN $cidblocklist_remoteFile | grep "^//" | sed 's/\/\///g' ; cat $localFile 2>/dev/null ; } | while read -r line; do echo "$line" >> $dataFolderTEMP/${line:0:2}/${line:0:4}; done
 			fi
 
 			echo "$(date +"%Y-%m-%dT%H:%M:%S%:z")" > $dataFolderTEMP/version
@@ -164,21 +237,8 @@ case $ACTION in
 		elif [[ $PARAM1 == "pinset" ]] ; then
 			
 			log "INFO" "UPDATE PINSET STARTED"
-			
-			rawDataFolder=$( jq -r '.pinset_filter.dataFolder' $config )
 
-			if [ "$rawDataFolder" = "null" ]; then
-				log "WARNING" "Config file different than expected!"
-				echo "Expected:"
-				echo -n "\"pinset_filter\": "
-				jq '.pinset_filter' 'config/default.example.json'
-				echo "Got:"
-				echo -n "\"pinset_filter\": "
-				jq '.pinset_filter' $config
-				log "ERROR" "Missing or invalid parameter in config file (see above)!"
-			fi
-
-			dataFolder=$( realpath $rawDataFolder )
+			dataFolder=$( realpath $pinset_rawDataFolder )
 			dataFolderTEMP="${dataFolder}_TEMP"
 
 			log "INFO" "Preparing folder structure"
@@ -200,7 +260,7 @@ case $ACTION in
 			log "INFO" "UPDATE PINSET ENDED"
 
 		else
-			echo "\033[31;1mERROR: Parameter invalid! Provide cid-blocklist / pinset second parameter.\n\033[0m"
+			log "ERROR" "Parameter invalid! Get instructions with: ipfs-gatewayacl help"
 			exit
 		fi
     ;;
@@ -209,14 +269,7 @@ case $ACTION in
     
 		log "INFO" "ROTATE LOG STARTED"
 
-		rawLogFile=$( jq -r '.logfile' $config )
-
-		if [ "$rawLogFile" = "null" ]; then
-			log "WARNING" "Config file different than expected! Expected: <string>"
-			log "ERROR" "Missing or invalid parameter in config file (see above)!"
-		fi
-
-		logFile=$( realpath $rawLogFile )
+		logFile=$( realpath $logrotate_rawLogFile )
 
 		if [[ ! -f "$logFile" ]]; then
 			log "WANRING" "Logfile doesn't exist: $logFile"
@@ -242,13 +295,13 @@ case $ACTION in
     ;;
 
   "cron")
-    echo "run cron job actions..."
+    log "INFO" "run cron job actions..."
     $rootDir/ipfs-gatewayacl update pinset
-    $rootDir/ipfs-gatewayacl update cid-blocklist
+    $rootDir/ipfs-gatewayacl update blocklist
     $rootDir/ipfs-gatewayacl logrotate
     ;;
 
   *)
-    printf "\033[31;1mERROR: Unkown Action.\n\033[0m"
+    log "ERROR" "Unkown Action."
     ;;
 esac
