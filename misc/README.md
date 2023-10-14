@@ -13,7 +13,7 @@ Commiting to AUR can be done as following:
 
 ```bash
 git -c init.defaultbranch=master clone ssh://aur@aur.archlinux.org/ipfs-gatewayalc-git.git 
-cd ipfs-gatewayalc-git/
+cd ipfs-gatewayacl-git/
 git config user.name [Public Name]
 git config user.email [Public E-Mail]
 #make required modifications

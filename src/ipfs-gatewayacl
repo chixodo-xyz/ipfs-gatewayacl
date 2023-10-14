@@ -97,7 +97,7 @@ if ( [ "$ACTION" = "config" ] ); then
 		[[ ! -f "$config" ]] && log "ERROR" "Config file missing."
 		echo "About to edit (read-write): $config"
 		read -r -p "Press ENTER to continue"
-		sudo $EDITOR $config
+		sudo nano $config
 		;;
 	"show")
 		[[ ! -f "$config" ]] && log "ERROR" "Config file missing."

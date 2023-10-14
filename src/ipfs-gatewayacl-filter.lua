@@ -230,6 +230,7 @@ end
 
 -- 0. cid_check
 if cidstr == "" then
+  -- WIP: could missing CID be legitimate? f.E. when accessing root of ipfs server?
   statuscode, statusmessage = 400, "CID missing"
   log(false, ngx.INFO, "CID_CHECK RESULT -> " .. statuscode .. " (" .. statusmessage .. ")")
 end
