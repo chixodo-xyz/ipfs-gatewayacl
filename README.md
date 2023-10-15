@@ -39,11 +39,6 @@ This ACL implements different policies. Each type of policy can be enabled or di
 >Follow this information to implement IPFS Gateway ACL to Arch Linux Node.
 
 ```bash
-sudo pacman -Syyu
-sudo pacman -S --needed git base-devel
-git clone https://aur.archlinux.org/yay.git
-cd yay
-makepkg -si
 yay -S openresty
 git clone https://github.com/chixodo-xyz/ipfs-gatewayacl-git.git
 cd ipfs-gatewayacl-git
