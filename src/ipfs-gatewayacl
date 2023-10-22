@@ -61,11 +61,7 @@ if [ "$ACTION" = "help" ]; then
 	echo ""
 	echo "To automate update and cleanup you can use cronjobs."
 	echo "The following commands sets up a basic usecase:"
-	printf "\033[0;34mcrontab -l > current_cron_jobs\033[0m\n"
-	printf "\033[0;34mecho \"*/15 * * * * /usr/local/bin/ipfs-gatewayacl cron\" >> current_cron_jobs\033[0m\n"
-	printf "\033[0;34mcrontab current_cron_jobs\033[0m\n"
-	printf "\033[0;34mrm current_cron_jobs\033[0m\n"
-	printf "\033[0;34mtail -f /var/log/cron\033[0m\n"	
+	printf "\033[0;34echo \"*/15 * * * * ipfs /usr/local/bin/ipfs-gatewayacl cron\" | sudo tee -a /etc/crontab > /dev/null\033[0m\n"	
 	exit
 fi
 
@@ -89,15 +85,15 @@ if ( [ "$ACTION" = "config" ] ); then
 	case $PARAM1 in
 	"init")
 		[[ -f "$config" ]] && log "ERROR" "Config already exists. Can't continue."
-		sudo mkdir -p "$( dirname "$config" )"
-		sudo cp "$( dirname "$config" )/default.example.json" $config
+		mkdir -p "$( dirname "$config" )"
+		cp "$( dirname "$config" )/default.example.json" $config
 		log "SUCCESS" "Config initialized"
 		;;
 	"edit")
 		[[ ! -f "$config" ]] && log "ERROR" "Config file missing."
 		echo "About to edit (read-write): $config"
 		read -r -p "Press ENTER to continue"
-		sudo nano $config
+		nano $config
 		;;
 	"show")
 		[[ ! -f "$config" ]] && log "ERROR" "Config file missing."
