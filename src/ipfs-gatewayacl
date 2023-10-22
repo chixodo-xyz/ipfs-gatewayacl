@@ -209,12 +209,12 @@ case $ACTION in
 			fi
 
 			if [ $cidblocklist_source = "local" ]; then
-				log "INFO" "Generating cid-blocklist using local data from $(realpath $localFile)"
+				log "INFO" "Generating cid-blocklist using local data from $localFile"
 				{ cat $localFile 2>/dev/null ; } | while read -r line; do echo "$line" >> $dataFolderTEMP/${line:0:2}/${line:0:4}; done
 			fi
 
 			if [ $cidblocklist_source = "both" ]; then
-				log "INFO" "Generating cid-blocklist using remote data from ${cidblocklist_remoteFile} including local data from $(realpath $localFile)"
+				log "INFO" "Generating cid-blocklist using remote data from ${cidblocklist_remoteFile} including local data from $localFile"
 				{ curl -sN $cidblocklist_remoteFile | grep "^//" | sed 's/\/\///g' ; cat $localFile 2>/dev/null ; } | while read -r line; do echo "$line" >> $dataFolderTEMP/${line:0:2}/${line:0:4}; done
 			fi
 
