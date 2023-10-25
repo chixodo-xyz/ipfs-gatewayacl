@@ -1,5 +1,7 @@
 #!/bin/bash
 
+ipfs_gatewayacl_version="v0.1.0"
+
 rootDir=$( dirname "$0" )
 
 ACTION=$1
@@ -30,6 +32,7 @@ if [ "$ACTION" = "help" ]; then
 	echo ""
 	echo "Available ACTIONS:"
 	echo "- help             Print this information."
+	echo "- version          Print version of ipfs-gatewayacl"
 	echo "- config           Show or modify configuration."
 	echo "  + P1: init       Create default.json"
 	echo "  + P1: edit       Edit default.json"
@@ -62,6 +65,9 @@ if [ "$ACTION" = "help" ]; then
 	echo "To automate update and cleanup you can use cronjobs."
 	echo "The following commands sets up a basic usecase:"
 	printf "\033[0;34echo \"*/15 * * * * ipfs /usr/local/bin/ipfs-gatewayacl cron\" | sudo tee -a /etc/crontab > /dev/null\033[0m\n"	
+	exit
+elif [ "$ACTION" == "version" ]; then
+	echo "$ipfs_gatewayacl_version"
 	exit
 fi
 
