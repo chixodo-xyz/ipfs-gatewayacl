@@ -3,6 +3,11 @@
 	"logfile": "/opt/ipfs-gatewayacl/logs/debug.log",
 	"ipfs_repo": "/opt/ipfs_repo",
 	"ipns_cache": "/opt/ipfs-gatewayacl/cache/ipns",
+	"allowed_paths": [
+		"^/?$",
+		"^/pint$",
+		"^/pint/.*$"
+	],
 	"pinset_filter": {
 		"enable": true,
 		"optional": true,

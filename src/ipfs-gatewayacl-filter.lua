@@ -139,7 +139,7 @@ local function log(z, a, b, c)
 end
 
 local function prepareResolutionStyles(host, requesturi)
-  local cidstr = ""
+  local cidstr = -1
   local path = ""
   local resolutionStyle = "path"
   -- Preparation for resolution styles
@@ -164,6 +164,15 @@ local function prepareResolutionStyles(host, requesturi)
     resolutionStyle = "subdomain"
     mode = "ipns"
   else
+    if type(config.allowed_paths) == "table" then
+      for k,v in pairs(config.allowed_paths) do 
+        if (string.match(requesturi, v)) then
+          log(false, ngx.DEBUG, "ALLOWED PATHS -> " .. v)
+          cidstr = ""
+          path = requesturi
+        end
+      end
+    end
     -- invalid request! 
   end
   return cidstr, path, resolutionStyle
@@ -211,7 +220,6 @@ end
 
 -- preparation
 headers = ngx.req.get_headers()
-cidstr, path, resolutionStyle = prepareResolutionStyles(host, requesturi)
 config = json.decode(readAll(ngx.var.ipfs_gatewayacl_root .. "/config/default.json"))
 if config.logfile then 
   if not isdir(absPath(config.logfile)) then
@@ -219,6 +227,7 @@ if config.logfile then
   end
   tinylogger.outfile = absPath(config.logfile)
 end
+cidstr, path, resolutionStyle = prepareResolutionStyles(host, requesturi)
 log(false, ngx.INFO, "REQUEST INFORMATION -> scheme = " .. scheme .. " ; host = " .. host .. " ; requesturi = " .. requesturi .. " ; cidstr = " .. cidstr .. " ; path -> " .. path .. " ; headers -> ", headers)
 
 -- write pre-debuging header
@@ -229,11 +238,18 @@ if config.debug then
 end
 
 -- 0. cid_check
-if cidstr == "" then
-  -- WIP: could missing CID be legitimate? f.E. when accessing root of ipfs server?
+if cidstr == -1 then
+  -- Invalid request
   statuscode, statusmessage = 400, "CID missing"
   log(false, ngx.INFO, "CID_CHECK RESULT -> " .. statuscode .. " (" .. statusmessage .. ")")
 end
+
+if cidstr == "" then
+  -- Request allowed path
+  statuscode, statusmessage = 222, "skip ipfs-gatewayacl"
+  log(false, ngx.INFO, "CID_CHECK RESULT -> " .. statuscode .. " (" .. statusmessage .. ")")
+end
+
 
 if (config.ipns_cache and not isdir(absPath(config.ipns_cache))) then
   os.execute("mkdir -p " .. absPath(config.ipns_cache))
@@ -361,6 +377,11 @@ if config.debug then
   ngx.header['X-debug-ServerHostname'] = getServerHostname()
   ngx.header['X-debug-RemoteAddr'] = ngx.var.remote_addr;
   ngx.header['X-debug-Origin'] = ngx.req.get_headers()["Origin"];
+end
+
+-- set non-standard success-response to 200
+if (statuscode > 200 and statuscode < 299) then
+  statuscode = 200
 end
 
 -- return statuscode, f.E. 200 if valid file or 403 if blocked
