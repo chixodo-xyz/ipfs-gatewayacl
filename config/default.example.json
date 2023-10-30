@@ -6,7 +6,9 @@
 	"allowed_paths": [
 		"^/?$",
 		"^/pint$",
-		"^/pint/.*$"
+		"^/pint/.*$",
+    "^/api$",
+    "^/api/.*$"
 	],
 	"pinset_filter": {
 		"enable": true,
