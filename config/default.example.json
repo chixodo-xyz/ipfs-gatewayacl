@@ -1,7 +1,7 @@
 {
 	"debug": false,
 	"logfile": "/opt/ipfs-gatewayacl/logs/debug.log",
-	"ipfs_repo": "/opt/ipfs_repo",
+	"ipfs_repo": "/opt/ipfs-repo",
 	"ipns_cache": "/opt/ipfs-gatewayacl/cache/ipns",
 	"allowed_paths": [
 		"^/?$",
