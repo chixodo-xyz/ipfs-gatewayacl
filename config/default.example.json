@@ -1,41 +1,43 @@
 {
-	"debug": false,
-	"logfile": "/opt/ipfs-gatewayacl/logs/debug.log",
-	"ipfs_repo": "/opt/ipfs-repo",
-	"ipns_cache": "/opt/ipfs-gatewayacl/cache/ipns",
-	"allowed_paths": [
-		"^/?$",
-		"^/pint$",
-		"^/pint/.*$",
+  "debug": false,
+  "logfile": "/opt/ipfs-gatewayacl/logs/debug.log",
+  "ipfs_repo": "/opt/ipfs-repo",
+  "ipns_cache": "/opt/ipfs-gatewayacl/cache/ipns",
+  "allowed_paths": [
+    "^/?$",
+    "^/pint$",
+    "^/pint/.*$",
     "^/api$",
-    "^/api/.*$"
-	],
-	"pinset_filter": {
-		"enable": true,
-		"optional": true,
-		"dataFolder": "/opt/ipfs-gatewayacl/cache/pinset",
-		"overwrite": {
-			"cid_blocklist": false,
-			"origin_filter": true
-		}
-	},
-	"origin_filter":{
-		"enable": true,
-		"policies": {
-			"direct": [".*"],
-			"same_origin": [".*"],
-			"user_initiated_top_level": [".*"],
-			"cross_site": [
-				"^https?://.*%.localhost/?$",
-				"^https?://localhost/?$"
-			]
-		}
-	},
-	"cid_blocklist": {
-		"enable": true,
-		"source": "both",
-		"remoteFile": "https://badbits.dwebops.pub/badbits.deny",
-		"localFile": "/opt/ipfs-gatewayacl/config/cid-blocklist.txt",
-		"dataFolder": "/opt/ipfs-gatewayacl/cache/cid-blocklist"
-	}
+    "^/api/.*$",
+    "^/statistics/.*$",
+    "^/statistics$"
+  ],
+  "pinset_filter": {
+    "enable": true,
+    "optional": true,
+    "dataFolder": "/opt/ipfs-gatewayacl/cache/pinset",
+    "overwrite": {
+      "cid_blocklist": false,
+      "origin_filter": true
+    }
+  },
+  "origin_filter":{
+    "enable": true,
+    "policies": {
+      "direct": [".*"],
+      "same_origin": [".*"],
+      "user_initiated_top_level": [".*"],
+      "cross_site": [
+        "^https?://.*%.localhost/?$",
+        "^https?://localhost/?$"
+      ]
+    }
+  },
+  "cid_blocklist": {
+    "enable": true,
+    "source": "both",
+    "remoteFile": "https://badbits.dwebops.pub/badbits.deny",
+    "localFile": "/opt/ipfs-gatewayacl/config/cid-blocklist.txt",
+    "dataFolder": "/opt/ipfs-gatewayacl/cache/cid-blocklist"
+  }
 }
