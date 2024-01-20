@@ -287,12 +287,13 @@ end
 
 if (config.pinset_filter.enable and statuscode == 200 and mode == "ipfs") then
   local dataFolder = absPath(config.pinset_filter.dataFolder)
-  local pinsetfile = dataFolder .. "/" .. cidstr:sub(0,8) .. "/" .. cidstr:sub(0,10)
+  local harmonizedCID = harmonizeRequest(cidstr, "")
+  local pinsetfile = dataFolder .. "/" .. harmonizedCID:sub(0,8) .. "/" .. harmonizedCID:sub(0,10)
   if not exists(dataFolder .. "/version") then
     statuscode, statusmessage = 503, "pinset datafolder not found."
     log(ngx.ERR, "ERROR: pinset datafolder not found! Check: " .. dataFolder)
   end
-  if string.find(readAll(pinsetfile), cidstr) == 1 then
+  if string.find(readAll(pinsetfile), harmonizedCID) == 1 then
     statuscode, statusmessage = 202, "cid found in pinset"
   elseif config.pinset_filter.optional == false then
     statuscode, statusmessage = 403, "cid not found in pinset"
